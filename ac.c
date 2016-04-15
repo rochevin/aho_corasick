@@ -2,6 +2,33 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ac.h"
+#include "file.h"
+
+//Fichiers
+char* GetTexte(char* f){
+	FILE *fichier ;
+	if ((fichier = fopen(f, "r")) == NULL) {
+		fprintf(stderr, "Impossible d'ouvrir le fichier %s\n", f) ;
+		exit(EXIT_FAILURE) ;
+	}
+	fseek(fichier, 0, SEEK_END) ;
+	long taille = ftell(fichier) ;
+	rewind(fichier) ;
+	char* texte = (char*)malloc(taille*sizeof(char)) ;
+
+	if (texte == NULL) {
+		fprintf(stderr, "Problème allocation mémoire...\n") ;
+		exit(EXIT_FAILURE) ;
+	}
+
+	fread(texte , taille, 1, fichier) ;
+
+	fclose(fichier) ;
+
+	return texte ;
+}
+
+
 
 //Fonctions Automate
 Automate allouer_automate() {
@@ -22,9 +49,7 @@ void mettreTerminal(int* estT, etat e){
 	estT[e]=1 ;
 }
 
-int sortie(int* estT, etat e){
-	return estT[e];
-}
+int sortie(int* estT, etat e){ return estT[e] == 1; }
 
 void init_automate(char* alphabet,int taille_alphabet){
 	Automate a = allouer_automate() ; //Création de l'automate (vide pour l'instant)
@@ -131,12 +156,8 @@ Transition Cible(Transition t,char lettre) {
 	return NULL ;
 }
 
-void ajout_suppleant(Transition* tabT, etat source,etat dest){
-	tabT[source] = t ;
-}
-
 //Algos d'aho coco
-void ENTRER(Automate a,char* mot, etat e){
+Automate ENTRER(Automate a,char* mot, etat e){
 	int i = 0;
 	int taille_du_mot = strlen(mot) ;
 
@@ -156,9 +177,11 @@ void ENTRER(Automate a,char* mot, etat e){
 		i++ ;
 	}
 	mettreTerminal(a->EstTerminal,e);
+
+	return a ;
 }
 
-void COMPLETER(Automate a){
+Automate COMPLETER(Automate a){
 	File f = FileVide() ;
 	etat e ;
 	
@@ -172,7 +195,7 @@ void COMPLETER(Automate a){
 			e = getDestination(t);
 			Enfiler(f,e) ;
 			t = getSuivant(t) ;
-			ajout_suppleant(a->tabSuppleants, e,a->EtatInitial);
+			ajout_transition(a->tabSuppleants, e,a->EtatInitial,getLettre(t));
 		}
 	}
 	while(!estFileVide(f)){
@@ -188,19 +211,21 @@ void COMPLETER(Automate a){
 			t = getSuivant(t) ;
 
 			//On prend le suppléant de l'état actuel 
-			etat s = a->tabSuppleants[e] ;
+			etat s = getDestination(a->tabSuppleants[e]) ;
 			//Et on recherche son suppléant
 			while(!EstDefinieTransition(t, s, t->lettre)){
-				s = a->tabSuppleants[s] ;
+				s = getDestination(a->tabSuppleants[s]) ;
 			}
-			a->tabSuppleants[e] = s ;
+			ajout_transition(a->tabSuppleants,e,s,getLettre(t));
 			mettreTerminal(a->EstTerminal,s) ;
 		}
 
 	}
+	FreeFile(f) ;
+	return a ;
 }
 
-void pre_ac(Automate a,char* liste_mots, nombre_mots){
+Automate pre_ac(Automate a,char* liste_mots, nombre_mots){
 	
 	for (int i = 0; i < a->tailleAlpha; i++) {
 		char lettre = a->alphabet[i] ;
@@ -210,11 +235,23 @@ void pre_ac(Automate a,char* liste_mots, nombre_mots){
 	for(int i = 0; i < nombre_mots;i++){
 		a = ENTRER(a,liste_mots[i],a->EtatInitial);
 	}
-	a = COMPLETER(a);
+	a = COMPLETER(a) ;
+	return a ;
 }
 
-void AC(Automate a,char* liste_mots, nombre_mots){
-	
+void AC(Automate a,char* liste_mots, nombre_mots,char* texte, int taille_texte){
+	a = pre_ac(a,liste_mots,nombre_mots) ;
+	etat e = a->EtatInitial ;
+	for(int j=0;j<taille_texte;j++){
+		while(EstDefinieTransition(a->tabListeTrans[e],e,getLettre(a->tabListeTrans[e])) != 1){
+			e = getDestination(a->tabListeTrans[e]) ; //On récupère le suppléant de l'état e (une seule transition pour chaque état dans tabListeTrans)
+		}
+		e = getDestination(Cible(a->tabListeTrans[e],getLettre(a->tabListeTrans[e]))) ;
+		if(sortie(a->EstTerminal,e)) {
+			
+		}
+	}
+
 }
 
 int EstDansAlphabet(char* alphabet,int *taille_alphabet,char lettre) {

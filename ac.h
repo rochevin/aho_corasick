@@ -15,7 +15,7 @@ struct _automate {
 	etat EtatInitial;
 	int* EstTerminal;
 	struct _transition* tabListeTrans;
-	struct etat* tabSuppleants;
+	struct _transition* tabSuppleants;
 };
 
 typedef struct _automate * Automate;
