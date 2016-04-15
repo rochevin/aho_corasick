@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ac.h"
+#include "file.h"
 
 
 int main(int argc, char** argv) {
@@ -8,7 +9,7 @@ int main(int argc, char** argv) {
 	int nombre_mots ;
 	char* alphabet = NULL;
 	int taille_alphabet = 0;
-	int nombre_etats = 1; //Pour l'instant on sait qu'on a au moins l'état initial
+	//int nombre_etats = 1; //Pour l'instant on sait qu'on a au moins l'état initial
 
 	if(argc<3) {
 		printf("Recherche de motif dans le fichier %s\n",argv[1]) ;
@@ -26,7 +27,7 @@ int main(int argc, char** argv) {
 		int taille_mot = strlen(argv[i]) ;
 		liste_mots[i-2] = (char*) malloc(sizeof(char)*(1+taille_mot)) ;
 		liste_mots[i-2] = argv[i] ;
-		nombre_etats = nombre_etats + taille_mot;
+		//nombre_etats = nombre_etats + taille_mot;
 	}
 	//On créer ensuite l'alphabet
 	for(int i=0;i<nombre_mot;i++) {
@@ -34,14 +35,9 @@ int main(int argc, char** argv) {
 	}
 
 	//Ensuite on initialise l'automate
-	Automate a = allouer_automate() ; //Création de l'automate (vide pour l'instant)
-	a->tailleAlpha = taille_alphabet ;
-	a->alphabet = alphabet ;
-	a->EtatInitial = 0 ;
-	a->nbEtats = nombre_etats ;
-	a->EstTerminal = creer_estTerminal(a->nbEtats) ;
-	a->tabListeTrans = creer_transition(a->nbEtats) ;
+	Automate a = init_automate(alphabet,taille_alphabet)
 
 
 	return EXIT_SUCCESS ;
 }
+
