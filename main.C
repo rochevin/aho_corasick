@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ac.h"
 #include "file.h"
 
@@ -20,7 +21,7 @@ int main(int argc, char** argv) {
 	//On récupère le nombre de mots que l'utilisateur a saisi
 	nombre_mots = argc-2 ;
 	//On alloue un tableau de chaines de caractères qui contiendra tous les mots
-	liste_mots = (char**) malloc(sizeof(char*) * nombre_mots) ;
+	char** liste_mots = (char**) malloc(sizeof(char*) * nombre_mots) ;
 	//On enregistre chaque mot dans le tableau
 	//Et on en profite pour déterminer le nombre d'états
 	for(int i=2;i<argc;i++){
@@ -30,12 +31,13 @@ int main(int argc, char** argv) {
 		//nombre_etats = nombre_etats + taille_mot;
 	}
 	//On créer ensuite l'alphabet
-	for(int i=0;i<nombre_mot;i++) {
+	for(int i=0;i<nombre_mots;i++) {
 		AjouterMot(alphabet,&taille_alphabet,liste_mots[i]);
 	}
+	//AjouterLettre(alphabet,&taille_alphabet,'/0') ;
 
 	//Ensuite on initialise l'automate
-	Automate a = init_automate(alphabet,taille_alphabet)
+	Automate a = init_automate(alphabet,taille_alphabet) ;
 
 
 	return EXIT_SUCCESS ;

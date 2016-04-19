@@ -14,12 +14,12 @@ File FileVide(){
 //Fonction qui renvoit une structure Liste nulle
 Liste listeVide() { return NULL ;}
 //Donne l'élement suivant de la liste
-Liste getSuivant(Liste l) {
+Liste LgetSuivant(Liste l) {
 	// Précondition : l est non vide
 	return l->suivant; 
 }
 //Définit l'élement suivant à partir de p
-void setSuivant(Liste l,Liste p) { 
+void LsetSuivant(Liste l,Liste p) { 
 	// Précondition : l est non vide
 	l->suivant = p; 
 }
@@ -39,31 +39,30 @@ void setElement(Liste l, int x) {
 int estListeVide(Liste l) { return l == NULL ;}
 
 
-int estFileVide(File f) { return f->longueur == NULL ;}
+int estFileVide(File f) { return f->longueur == 0 ;}
 
 //fonction enfiler en queue
 File Enfiler(File f, int x) {
 	Liste p = (Liste)malloc(sizeof(struct _liste)) ; 
 	if (p == 0) exit(1) ;
-	setSuivant(p, NULL) ;
+	LsetSuivant(p, NULL) ;
 	setElement(p, x) ;
 	if(f->longueur == 0){
 		f->tete = f->queue = p;
 	}else {
-		setSuivant(l, p) ;
+		LsetSuivant(f->queue, p) ;
 	}
 	f->longueur = f->longueur + 1 ;
 	return f ; 
 }
 
 File Defiler(File f){
-	if(!estListeVide(l)) return NULL ;
+	if(f->longueur == 0) return NULL ;
 	Liste l = f->tete ;
 	if(f->longueur == 1){
 		f->tete = f->queue = listeVide();
 	}else {
-		f->tete = getSuivant(l) ;
-		free(l->element) ;
+		f->tete = LgetSuivant(l) ;
 		free(l) ;
 		f->longueur = f->longueur - 1 ;
 	}
@@ -74,3 +73,5 @@ void FreeFile(File f) {
 		Defiler(f) ;
 	}
 }
+
+

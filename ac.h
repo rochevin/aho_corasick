@@ -1,3 +1,7 @@
+#ifndef AC
+
+#define AC
+
 typedef int etat;
 
 struct _transition {
@@ -14,8 +18,35 @@ struct _automate {
 	int nbEtats;
 	etat EtatInitial;
 	int* EstTerminal;
-	struct _transition* tabListeTrans;
-	struct _transition* tabSuppleants;
+	Transition* tabListeTrans;
+	Transition* tabSuppleants;
 };
 
 typedef struct _automate * Automate;
+
+char* GetTexte(char* f);
+Automate allouer_automate();
+int* creer_estTerminal(int nbE);
+void mettreTerminal(int* estT, etat e);
+int sortie(int* estT, etat e);
+Automate init_automate(char* alphabet,int taille_alphabet);
+Automate reallouer_automate(Automate a,char* mot, int taille_du_mot);
+int estTransitionVide(Transition t);
+void setDestination(Transition t,etat d);
+int getDestination(Transition t);
+void setLettre(Transition t,char l);
+char getLettre(Transition t);
+void setSuivant(Transition t,Transition s);
+Transition getSuivant(Transition t);
+Transition* creer_transition(int nbE);
+void ajout_transition(Transition* tabT, etat source,etat dest, char a);
+int EstDefinieTransition(Transition t,etat e,char l);
+Automate ENTRER(Automate a,char* mot, etat e);
+Automate COMPLETER(Automate a);
+Automate pre_ac(Automate a,char** liste_mots,int nombre_mots);
+//void AC(Automate a,char** liste_mots,int nombre_mots,char* texte, int taille_texte);
+int EstDansAlphabet(char* alphabet,int taille_alphabet,char lettre);
+void AjouterLettre(char* alphabet,int *taille_alphabet,char lettre);
+void AjouterMot(char* alphabet,int *taille_alphabet,char* mot);
+
+#endif

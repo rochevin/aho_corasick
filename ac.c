@@ -51,7 +51,7 @@ void mettreTerminal(int* estT, etat e){
 
 int sortie(int* estT, etat e){ return estT[e] == 1; }
 
-void init_automate(char* alphabet,int taille_alphabet){
+Automate init_automate(char* alphabet,int taille_alphabet){
 	Automate a = allouer_automate() ; //Création de l'automate (vide pour l'instant)
 	a->tailleAlpha = taille_alphabet ;
 	a->alphabet = alphabet ;
@@ -65,16 +65,16 @@ void init_automate(char* alphabet,int taille_alphabet){
 }
 
 //Fonction qui modifie l'automate pour ajouter l'espace mémoire nécessaire pour le mot donné.
-void reallouer_automate(Automate a,char* mot, int taille_du_mot){
+Automate reallouer_automate(Automate a,char* mot, int taille_du_mot){
 	int etats_avant = a->nbEtats ; //On garde en mémoire le nombre d'états précédents
-	(char*) realloc(alphabet, sizeof(char) * (taille_alphabet+1));
+
 	a->nbEtats = a->nbEtats + taille_du_mot ; // Il y'a autant d'états que le nombre de lettres dans chaque mot + etat initial
 	a->EstTerminal = (int*)realloc(a->EstTerminal, sizeof(int) * (a->nbEtats)); ; //On realloue la mémoire nécessaire pour contenir tous les états
 	//On set tous les nouveaux etats comme étant non terminaux
 	for(int i=etats_avant;i<a->nbEtats;i++) {
 		a->EstTerminal[i] = 0 ;
 	}
-	a->tabListeTrans = (Transition*)malloc(sizeof(struct _transition)); ; //On alloue de la mémoire pour un tableau de taille 1 pour l'état initial
+	a->tabListeTrans = (Transition*)realloc(a->tabListeTrans, sizeof(struct _transition) * (a->nbEtats)) ; //On alloue de la mémoire pour un tableau de taille 1 pour l'état initial
 	//On set tous les nouveaux états comme n'ayant aucune transition
 	for(int i=etats_avant;i<a->nbEtats;i++) {
 		a->tabListeTrans[i] = NULL ;
@@ -107,12 +107,12 @@ char getLettre(Transition t){
 }
 
 //Définit l'élement suivant à partir de s
-void setSuivant(Transition t,Transition s) {
+void TsetSuivant(Transition t,Transition s) {
 	// Précondition : t est non vide
 	t->suivant = s ;
 }
 
-Transition getSuivant(Transition t){
+Transition TgetSuivant(Transition t){
 	return t->suivant ;
 }
 
@@ -130,7 +130,7 @@ void ajout_transition(Transition* tabT, etat source,etat dest, char a){
 	if (t == 0) exit(1) ;
 	setLettre(t, a) ;
 	setDestination(t, dest) ;
-	setSuivant(t, tabT[source]) ;
+	TsetSuivant(t, tabT[source]) ;
 
 	tabT[source] = t ;
 }
@@ -139,18 +139,18 @@ int EstDefinieTransition(Transition t,etat e,char l){
 	while(!estTransitionVide(t)){
 		if(getLettre(t) == l)
 			return 1 ;
-		t=getSuivant(t);
+		t=TgetSuivant(t);
 	}
 	return 0 ;
 }
 
 Transition Cible(Transition t,char lettre) {
-	while(!estTransitionVide(getSuivant(t))) {
+	while(!estTransitionVide(TgetSuivant(t))) {
 		if(getLettre(t) == lettre) {
 			return t ;
 		}
 		else{
-			t = getSuivant(t) ;
+			t = TgetSuivant(t) ;
 		}
 	}
 	return NULL ;
@@ -189,17 +189,17 @@ Automate COMPLETER(Automate a){
 	//Remplissage de la file pour tous les enfants de la racine + ajout de suppléance pour ces enfants vers la racine
 	while(!estTransitionVide(t)){
 		if(getDestination(t) == a->EtatInitial){ //On ne prend pas en compte les transition de l'état initial vers l'état initial
-			t = getSuivant(t) ;
+			t = TgetSuivant(t) ;
 			continue;
 		}else{
 			e = getDestination(t);
 			Enfiler(f,e) ;
-			t = getSuivant(t) ;
+			t = TgetSuivant(t) ;
 			ajout_transition(a->tabSuppleants, e,a->EtatInitial,getLettre(t));
 		}
 	}
 	while(!estFileVide(f)){
-		e = f->tete;
+		e = getElement(f->tete);
 		Defiler(f);
 
 		Transition t = a->tabListeTrans[e] ; //On récupère toutes les transitions de l'état
@@ -208,7 +208,7 @@ Automate COMPLETER(Automate a){
 			//On récupère l'état pour chaque transition, et on l'ajoute dans la file
 			e = getDestination(t);
 			Enfiler(f,e) ;
-			t = getSuivant(t) ;
+			t = TgetSuivant(t) ;
 
 			//On prend le suppléant de l'état actuel 
 			etat s = getDestination(a->tabSuppleants[e]) ;
@@ -225,7 +225,7 @@ Automate COMPLETER(Automate a){
 	return a ;
 }
 
-Automate pre_ac(Automate a,char* liste_mots, nombre_mots){
+Automate pre_ac(Automate a,char** liste_mots,int nombre_mots){
 	
 	for (int i = 0; i < a->tailleAlpha; i++) {
 		char lettre = a->alphabet[i] ;
@@ -239,26 +239,25 @@ Automate pre_ac(Automate a,char* liste_mots, nombre_mots){
 	return a ;
 }
 
-void AC(Automate a,char* liste_mots, nombre_mots,char* texte, int taille_texte){
-	a = pre_ac(a,liste_mots,nombre_mots) ;
-	etat e = a->EtatInitial ;
-	for(int j=0;j<taille_texte;j++){
-		while(EstDefinieTransition(a->tabListeTrans[e],e,getLettre(a->tabListeTrans[e])) != 1){
-			e = getDestination(a->tabListeTrans[e]) ; //On récupère le suppléant de l'état e (une seule transition pour chaque état dans tabListeTrans)
-		}
-		e = getDestination(Cible(a->tabListeTrans[e],getLettre(a->tabListeTrans[e]))) ;
-		if(sortie(a->EstTerminal,e)) {
+// void AC(Automate a,char** liste_mots,int nombre_mots,char* texte, int taille_texte){
+// 	a = pre_ac(a,liste_mots,nombre_mots) ;
+// 	etat e = a->EtatInitial ;
+// 	for(int j=0;j<taille_texte;j++){
+// 		while(EstDefinieTransition(a->tabListeTrans[e],e,getLettre(a->tabListeTrans[e])) != 1){
+// 			e = getDestination(a->tabListeTrans[e]) ; //On récupère le suppléant de l'état e (une seule transition pour chaque état dans tabListeTrans)
+// 		}
+// 		e = getDestination(Cible(a->tabListeTrans[e],getLettre(a->tabListeTrans[e]))) ;
+// 		if(sortie(a->EstTerminal,e)) {
 			
-		}
-	}
+// 		}
+// 	}
 
-}
+// }
 
-int EstDansAlphabet(char* alphabet,int *taille_alphabet,char lettre) {
+int EstDansAlphabet(char* alphabet,int taille_alphabet,char lettre) {
 	if(alphabet == NULL)
-		return 0
-	int taille = *taille_alphabet
-	for(int i=0;i<taille;i++){
+		return 0;
+	for(int i=0;i<taille_alphabet;i++){
 		if(alphabet[i]==lettre)
 			return 1;
 	}
@@ -282,9 +281,9 @@ void AjouterLettre(char* alphabet,int *taille_alphabet,char lettre){
 //fonction qui parcours un mot et ajoute la lettre dans l'alphabet si elle n'y est pas
 void AjouterMot(char* alphabet,int *taille_alphabet,char* mot) {
 	int taille = *taille_alphabet ;
-	for(int i = 0, i<strlen(mot);i++){
-		if(EstDansAlphabet(mot[i]) != 1)
-			AjouterLettre(alphabet,taille,mot[i]) ;
+	for(int i = 0; i<strlen(mot);i++){
+		if(EstDansAlphabet(alphabet,taille,mot[i]) != 1)
+			AjouterLettre(alphabet,&taille,mot[i]) ;
 	}
 }
 
