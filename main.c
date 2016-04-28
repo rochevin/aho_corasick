@@ -10,6 +10,7 @@ int main(int argc, char** argv) {
 	int nombre_mots ;
 	char* alphabet = NULL;
 	int taille_alphabet = 0;
+	int etats_max = 1;
 	//int nombre_etats = 1; //Pour l'instant on sait qu'on a au moins l'état initial
 
 	if(argc<3) {
@@ -28,17 +29,18 @@ int main(int argc, char** argv) {
 		int taille_mot = strlen(argv[i]) ;
 		liste_mots[i-2] = (char*) malloc(sizeof(char)*(1+taille_mot)) ;
 		liste_mots[i-2] = argv[i] ;
-		//nombre_etats = nombre_etats + taille_mot;
+		etats_max = etats_max + taille_mot;
 	}
 	//On créer ensuite l'alphabet
 	for(int i=0;i<nombre_mots;i++) {
-		AjouterMot(alphabet,&taille_alphabet,liste_mots[i]);
+		alphabet = AjouterMot(alphabet,&taille_alphabet,liste_mots[i]);
 	}
-	//AjouterLettre(alphabet,&taille_alphabet,'/0') ;
+	//alphabet = AjouterLettre(alphabet,&taille_alphabet,'/0') ;
 
 	//Ensuite on initialise l'automate
-	Automate a = init_automate(alphabet,taille_alphabet) ;
-
+	Automate a = init_automate(alphabet,taille_alphabet,etats_max) ;
+	PrintAutomate(a) ;
+	a = pre_ac(a,liste_mots,nombre_mots);
 
 	return EXIT_SUCCESS ;
 }

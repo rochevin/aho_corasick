@@ -51,16 +51,19 @@ void mettreTerminal(int* estT, etat e){
 
 int sortie(int* estT, etat e){ return estT[e] == 1; }
 
-Automate init_automate(char* alphabet,int taille_alphabet){
+Automate init_automate(char* alphabet,int taille_alphabet,int etats_max){
 	Automate a = allouer_automate() ; //Création de l'automate (vide pour l'instant)
 	a->tailleAlpha = taille_alphabet ;
 	a->alphabet = alphabet ;
 	a->EtatInitial = 0 ;
 	a->nbEtats = 1 ; // Pour l'instant, un seul état, l'état initial 0
-	a->EstTerminal = (int*)malloc(sizeof(int)) ; //On alloue la place dans le tableau des etats terminaux pour 0
+	a->EstTerminal = (int*)malloc(sizeof(int)* etats_max) ; //On alloue la place dans le tableau des etats terminaux pour 0
 	a->EstTerminal[0] = 0 ; // On set l'état 0 comme étant non terminal
-	a->tabListeTrans = (Transition*)malloc(sizeof(struct _transition)); ; //On alloue de la mémoire pour un tableau de taille 1 pour l'état initial
+	a->tabListeTrans = (Transition*)malloc(sizeof(struct _transition)* etats_max); ; //On alloue de la mémoire pour un tableau de taille 1 pour l'état initial
 	a->tabListeTrans[0] = NULL; //On set l'état initial comme n'ayant aucune transition
+	a->tabSuppleants = (Transition*)malloc(sizeof(struct _transition)* etats_max); ; //On alloue de la mémoire pour un tableau de taille 1 pour l'état initial
+	a->tabSuppleants[0] = NULL; //On set l'état initial comme n'ayant aucune transition
+
 	return a;
 }
 
@@ -69,16 +72,21 @@ Automate reallouer_automate(Automate a,char* mot, int taille_du_mot){
 	int etats_avant = a->nbEtats ; //On garde en mémoire le nombre d'états précédents
 
 	a->nbEtats = a->nbEtats + taille_du_mot ; // Il y'a autant d'états que le nombre de lettres dans chaque mot + etat initial
-	a->EstTerminal = (int*)realloc(a->EstTerminal, sizeof(int) * (a->nbEtats)); ; //On realloue la mémoire nécessaire pour contenir tous les états
 	//On set tous les nouveaux etats comme étant non terminaux
 	for(int i=etats_avant;i<a->nbEtats;i++) {
 		a->EstTerminal[i] = 0 ;
 	}
-	a->tabListeTrans = (Transition*)realloc(a->tabListeTrans, sizeof(struct _transition) * (a->nbEtats)) ; //On alloue de la mémoire pour un tableau de taille 1 pour l'état initial
+
 	//On set tous les nouveaux états comme n'ayant aucune transition
 	for(int i=etats_avant;i<a->nbEtats;i++) {
 		a->tabListeTrans[i] = NULL ;
 	}
+
+	//On set tous les nouveaux états comme n'ayant aucune transition
+	for(int i=etats_avant;i<a->nbEtats;i++) {
+		a->tabSuppleants[i] = NULL ;
+	}
+
 	return a ;
 }
 
@@ -226,14 +234,13 @@ Automate COMPLETER(Automate a){
 }
 
 Automate pre_ac(Automate a,char** liste_mots,int nombre_mots){
-	
+	PrintAutomate(a) ;
+	for(int i = 0; i < nombre_mots;i++){
+		a = ENTRER(a,liste_mots[i],a->EtatInitial);
+	}
 	for (int i = 0; i < a->tailleAlpha; i++) {
 		char lettre = a->alphabet[i] ;
 		ajout_transition(a->tabListeTrans, a->EtatInitial,a->EtatInitial, lettre) ;
-	}
-
-	for(int i = 0; i < nombre_mots;i++){
-		a = ENTRER(a,liste_mots[i],a->EtatInitial);
 	}
 	a = COMPLETER(a) ;
 	return a ;
@@ -254,17 +261,18 @@ Automate pre_ac(Automate a,char** liste_mots,int nombre_mots){
 
 // }
 
-int EstDansAlphabet(char* alphabet,int taille_alphabet,char lettre) {
+int EstDansAlphabet(char* alphabet,int *taille_alphabet,char lettre) {
 	if(alphabet == NULL)
 		return 0;
-	for(int i=0;i<taille_alphabet;i++){
+	int taille = *taille_alphabet ;
+	for(int i=0;i<taille;i++){
 		if(alphabet[i]==lettre)
 			return 1;
 	}
 	return 0;
 }
 
-void AjouterLettre(char* alphabet,int *taille_alphabet,char lettre){
+char* AjouterLettre(char* alphabet,int *taille_alphabet,char lettre){
 	int taille = *taille_alphabet ;
 	if(alphabet == NULL){
 		alphabet = (char*) malloc(sizeof(char));
@@ -274,18 +282,56 @@ void AjouterLettre(char* alphabet,int *taille_alphabet,char lettre){
 		alphabet[taille] = lettre;
 	}
 	*taille_alphabet = taille + 1;
+	return alphabet ;
 }
 
 
 
 //fonction qui parcours un mot et ajoute la lettre dans l'alphabet si elle n'y est pas
-void AjouterMot(char* alphabet,int *taille_alphabet,char* mot) {
-	int taille = *taille_alphabet ;
+char* AjouterMot(char* alphabet,int *taille_alphabet,char* mot) {
 	for(int i = 0; i<strlen(mot);i++){
-		if(EstDansAlphabet(alphabet,taille,mot[i]) != 1)
-			AjouterLettre(alphabet,&taille,mot[i]) ;
+		if(EstDansAlphabet(alphabet,taille_alphabet,mot[i]) != 1){
+			alphabet = AjouterLettre(alphabet,taille_alphabet,mot[i]) ;
+		}
 	}
+	return alphabet ;
 }
 
+void PrintAutomate(Automate a){
+	printf("Alphabet : %s\n",a->alphabet) ;
+	printf("Taille alphabet : %d\n",a->tailleAlpha) ;
+	printf("Etat initial : %d\n",a->EtatInitial) ;
+	printf("Nb etats : %d\n",a->nbEtats) ;
+	printf("Etats terminaux : ") ;
+	for(int i =0; i<a->nbEtats;i++){
+		if(sortie(a->EstTerminal,i)){
+			printf("%d",i) ;
+		}
+	}
 
+	printf("Transitions : ") ;
+	for(int i =0; i<a->nbEtats;i++){
+		if(estTransitionVide(a->tabListeTrans[i])){
+			continue ;
+		}
+		Transition t = a->tabListeTrans[i] ;
+		while(!estTransitionVide(t)){
+			printf("%d %c %d\n",i,getLettre(t),getDestination(t)) ;
+			t=TgetSuivant(t);
+		}
+	}
+
+	printf("Suppléants : ") ;
+	for(int i =0; i<a->nbEtats;i++){
+		if(estTransitionVide(a->tabSuppleants[i])){
+			continue ;
+		}
+		Transition t = a->tabSuppleants[i] ;
+		while(!estTransitionVide(t)){
+			printf("%d %c %d\n",i,getLettre(t),getDestination(t)) ;
+			t=TgetSuivant(t);
+		}
+	}
+
+}
 
