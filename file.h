@@ -12,7 +12,6 @@ typedef struct _liste * Liste;
 struct _file {
 	int longueur ;
 	struct _liste * tete;
-	struct _liste * queue;
 };
 
 typedef struct _file * File;
@@ -28,5 +27,6 @@ int estFileVide(File f);
 File Enfiler(File f, int x);
 File Defiler(File f);
 void FreeFile(File f);
+void AfficherFile(File f);
 
 #endif

@@ -35,12 +35,12 @@ int main(int argc, char** argv) {
 	for(int i=0;i<nombre_mots;i++) {
 		alphabet = AjouterMot(alphabet,&taille_alphabet,liste_mots[i]);
 	}
-	//alphabet = AjouterLettre(alphabet,&taille_alphabet,'/0') ;
 
 	//Ensuite on initialise l'automate
 	Automate a = init_automate(alphabet,taille_alphabet,etats_max) ;
-	PrintAutomate(a) ;
-	a = pre_ac(a,liste_mots,nombre_mots);
+	//PrintAutomate(a) ;
+	//a = pre_ac(a,liste_mots,nombre_mots);
+	Aho_Corasick(a,liste_mots,nombre_mots,argv[1]) ;
 
 	return EXIT_SUCCESS ;
 }

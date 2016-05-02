@@ -24,18 +24,12 @@ char* GetTexte(char* f){
 	fread(texte , taille, 1, fichier) ;
 
 	fclose(fichier) ;
-
 	return texte ;
 }
 
 
 
 //Fonctions Automate
-Automate allouer_automate() {
-	Automate a = (Automate)malloc(sizeof(struct _automate)) ;
-	if (a == 0) exit(1) ;
-	return a ;
-}
 
 int* creer_estTerminal(int nbE) {
 	int* t = (int*)malloc(nbE * sizeof(int));
@@ -45,6 +39,25 @@ int* creer_estTerminal(int nbE) {
 	return t ;
 }
 
+Automate allouer_automate(int etats_max) {
+	Automate a = (Automate)malloc(sizeof(struct _automate)) ;
+	if (a == 0) exit(1) ;
+	//Tableaux de l'automate
+	//Chaque tableau est alloué en fonction du nombre maximum d'états possible
+	
+	//On alloue le tableaux des etats terminaux
+	a->EstTerminal = creer_estTerminal(etats_max) ; 
+	
+	//On alloue de la mémoire pour un tableau de transition
+	a->tabListeTrans = creer_transition(etats_max);
+	
+	//On alloue de la mémoire pour le tableau de suppléants
+	a->tabSuppleants = creer_estTerminal(etats_max);
+	return a ;
+}
+
+
+
 void mettreTerminal(int* estT, etat e){
 	estT[e]=1 ;
 }
@@ -52,43 +65,18 @@ void mettreTerminal(int* estT, etat e){
 int sortie(int* estT, etat e){ return estT[e] == 1; }
 
 Automate init_automate(char* alphabet,int taille_alphabet,int etats_max){
-	Automate a = allouer_automate() ; //Création de l'automate (vide pour l'instant)
+	Automate a = allouer_automate(etats_max) ; //Création de l'automate (vide pour l'instant)
+	//Définition de l'alphabet
 	a->tailleAlpha = taille_alphabet ;
 	a->alphabet = alphabet ;
+	//Définition de l'état initial
 	a->EtatInitial = 0 ;
 	a->nbEtats = 1 ; // Pour l'instant, un seul état, l'état initial 0
-	a->EstTerminal = (int*)malloc(sizeof(int)* etats_max) ; //On alloue la place dans le tableau des etats terminaux pour 0
-	a->EstTerminal[0] = 0 ; // On set l'état 0 comme étant non terminal
-	a->tabListeTrans = (Transition*)malloc(sizeof(struct _transition)* etats_max); ; //On alloue de la mémoire pour un tableau de taille 1 pour l'état initial
-	a->tabListeTrans[0] = NULL; //On set l'état initial comme n'ayant aucune transition
-	a->tabSuppleants = (Transition*)malloc(sizeof(struct _transition)* etats_max); ; //On alloue de la mémoire pour un tableau de taille 1 pour l'état initial
-	a->tabSuppleants[0] = NULL; //On set l'état initial comme n'ayant aucune transition
-
+	
 	return a;
 }
 
-//Fonction qui modifie l'automate pour ajouter l'espace mémoire nécessaire pour le mot donné.
-Automate reallouer_automate(Automate a,char* mot, int taille_du_mot){
-	int etats_avant = a->nbEtats ; //On garde en mémoire le nombre d'états précédents
 
-	a->nbEtats = a->nbEtats + taille_du_mot ; // Il y'a autant d'états que le nombre de lettres dans chaque mot + etat initial
-	//On set tous les nouveaux etats comme étant non terminaux
-	for(int i=etats_avant;i<a->nbEtats;i++) {
-		a->EstTerminal[i] = 0 ;
-	}
-
-	//On set tous les nouveaux états comme n'ayant aucune transition
-	for(int i=etats_avant;i<a->nbEtats;i++) {
-		a->tabListeTrans[i] = NULL ;
-	}
-
-	//On set tous les nouveaux états comme n'ayant aucune transition
-	for(int i=etats_avant;i<a->nbEtats;i++) {
-		a->tabSuppleants[i] = NULL ;
-	}
-
-	return a ;
-}
 
 //Fonctions Transition
 
@@ -141,19 +129,21 @@ void ajout_transition(Transition* tabT, etat source,etat dest, char a){
 	TsetSuivant(t, tabT[source]) ;
 
 	tabT[source] = t ;
+	//printf("Ajout transition de %d vers %d pour %c\n",source,dest,a) ;
 }
 
-int EstDefinieTransition(Transition t,etat e,char l){
+int EstDefinieTransition(Transition t,char l){
 	while(!estTransitionVide(t)){
-		if(getLettre(t) == l)
+		if(getLettre(t) == l){
 			return 1 ;
+		}
 		t=TgetSuivant(t);
 	}
 	return 0 ;
 }
 
 Transition Cible(Transition t,char lettre) {
-	while(!estTransitionVide(TgetSuivant(t))) {
+	while(!estTransitionVide(t)) {
 		if(getLettre(t) == lettre) {
 			return t ;
 		}
@@ -164,24 +154,36 @@ Transition Cible(Transition t,char lettre) {
 	return NULL ;
 }
 
+
+void ajout_suppleant(int* tabT, etat source,etat dest){
+	tabT[source] = dest ;
+}
+
 //Algos d'aho coco
-Automate ENTRER(Automate a,char* mot, etat e){
-	int i = 0;
+Automate ENTRER(Automate a,char* mot){
+	int i = 0; //On set le compteur qui parcours le mot à 0
 	int taille_du_mot = strlen(mot) ;
 
-	//Avant de commencer on modifie l'automate pour accepter le nouveau mot
-	int nb_etats_avant_realloc = a->nbEtats ;
-	a = reallouer_automate(a,mot,taille_du_mot) ;
+	etat e = a->EtatInitial ;
 
-	//On parcours les lettres du mot et on recupère l'état qui est pointé par la transition via la lettre
-	while (i < taille_du_mot && EstDefinieTransition(a->tabListeTrans[e],e, mot[i]) == 1) {
+	
+	//Premier parcours du mot : on récupère l'état qui, si il existe une transition pour la lettre i, est la destination du plus long préfixe du mot déjà entré dans l'automate
+
+	while (i < taille_du_mot && EstDefinieTransition(a->tabListeTrans[e], mot[i]) == 1) {
 		e = getDestination(Cible(a->tabListeTrans[e],mot[i])) ; //On récupère la destination de la transition qui part de e pour mot[i]
+
 		i++ ;
 	}
+
+	//Deuxième parcours : On créer un nouvel etat pour chaque nouvelle lettre à entrer dans l'automate, et on créer une transition de l'état précédent vers cet etat pour la lettre en position i
+
 	while (i < taille_du_mot) {
 		char lettre = mot[i];
-		etat s = nb_etats_avant_realloc + 1;
+		etat s = a->nbEtats; 
+		(a->nbEtats)++; // On a créer un nouvel etat donc on incrémente le nombre d'états
+		//a = reallouer_automate(a,s);
 		ajout_transition(a->tabListeTrans, e,s, lettre) ;
+		e = s;
 		i++ ;
 	}
 	mettreTerminal(a->EstTerminal,e);
@@ -191,8 +193,9 @@ Automate ENTRER(Automate a,char* mot, etat e){
 
 Automate COMPLETER(Automate a){
 	File f = FileVide() ;
-	etat e ;
-	
+	etat e  = a->EtatInitial;
+	etat child, s, r;
+
 	Transition t = a->tabListeTrans[a->EtatInitial] ; //Liste de toutes les transitions partants de l'état initial
 	//Remplissage de la file pour tous les enfants de la racine + ajout de suppléance pour ces enfants vers la racine
 	while(!estTransitionVide(t)){
@@ -203,29 +206,46 @@ Automate COMPLETER(Automate a){
 			e = getDestination(t);
 			Enfiler(f,e) ;
 			t = TgetSuivant(t) ;
-			ajout_transition(a->tabSuppleants, e,a->EtatInitial,getLettre(t));
+			ajout_suppleant(a->tabSuppleants, e,a->EtatInitial); //Retour vers l'état initial
 		}
 	}
 	while(!estFileVide(f)){
 		e = getElement(f->tete);
 		Defiler(f);
-
 		Transition t = a->tabListeTrans[e] ; //On récupère toutes les transitions de l'état
 		//et on fait le même parcours que pour l'état initial
+
 		while(!estTransitionVide(t)){
 			//On récupère l'état pour chaque transition, et on l'ajoute dans la file
-			e = getDestination(t);
-			Enfiler(f,e) ;
-			t = TgetSuivant(t) ;
+			char lettre_t = t->lettre ;
+			child = getDestination(t) ;
+			//printf("Destination de %d: %d\n",e,child);
+			Enfiler(f,child) ;
+			t = TgetSuivant(t);
+			//AfficherFile(f);
 
 			//On prend le suppléant de l'état actuel 
-			etat s = getDestination(a->tabSuppleants[e]) ;
+			s = a->tabSuppleants[e] ;
+			//printf("Suppléant : %d\n",s);
 			//Et on recherche son suppléant
-			while(!EstDefinieTransition(t, s, t->lettre)){
-				s = getDestination(a->tabSuppleants[s]) ;
+			while(EstDefinieTransition(a->tabListeTrans[s], lettre_t) == 0){
+				s = a->tabSuppleants[s] ;
+				//printf("On récupère le suppléant de s : %d\n",s);
 			}
-			ajout_transition(a->tabSuppleants,e,s,getLettre(t));
-			mettreTerminal(a->EstTerminal,s) ;
+
+			
+
+			//printf("Suppléant : %d\n",s);
+			r = getDestination(Cible(a->tabListeTrans[s],lettre_t)) ;
+			ajout_suppleant(a->tabSuppleants, child,r);
+			//printSuppleants(a); //Vérification des suppléants
+			//printf("Destination finale : %d",r);
+			if(sortie(a->EstTerminal,r) == 1){
+				//printf(" TERMINALE");
+				mettreTerminal(a->EstTerminal,child) ;
+			}
+			//printf("\n");
+
 		}
 
 	}
@@ -234,32 +254,47 @@ Automate COMPLETER(Automate a){
 }
 
 Automate pre_ac(Automate a,char** liste_mots,int nombre_mots){
-	PrintAutomate(a) ;
+	//PrintAutomate(a) ;
+	etat e = a->EtatInitial ;
 	for(int i = 0; i < nombre_mots;i++){
-		a = ENTRER(a,liste_mots[i],a->EtatInitial);
+		printf("Ajout du mot : %s \n",liste_mots[i]) ;
+		a = ENTRER(a,liste_mots[i]);
+		//PrintAutomate(a) ;
 	}
 	for (int i = 0; i < a->tailleAlpha; i++) {
 		char lettre = a->alphabet[i] ;
-		ajout_transition(a->tabListeTrans, a->EtatInitial,a->EtatInitial, lettre) ;
+		if(!EstDefinieTransition(a->tabListeTrans[e],lettre)){
+			ajout_transition(a->tabListeTrans, e,e, lettre) ;
+		}
 	}
+	//PrintAutomate(a) ;
+	//printf("Fonction COMPLETER\n") ;
 	a = COMPLETER(a) ;
+	//PrintAutomate(a) ;
 	return a ;
 }
 
-// void AC(Automate a,char** liste_mots,int nombre_mots,char* texte, int taille_texte){
-// 	a = pre_ac(a,liste_mots,nombre_mots) ;
-// 	etat e = a->EtatInitial ;
-// 	for(int j=0;j<taille_texte;j++){
-// 		while(EstDefinieTransition(a->tabListeTrans[e],e,getLettre(a->tabListeTrans[e])) != 1){
-// 			e = getDestination(a->tabListeTrans[e]) ; //On récupère le suppléant de l'état e (une seule transition pour chaque état dans tabListeTrans)
-// 		}
-// 		e = getDestination(Cible(a->tabListeTrans[e],getLettre(a->tabListeTrans[e]))) ;
-// 		if(sortie(a->EstTerminal,e)) {
-			
-// 		}
-// 	}
+void Aho_Corasick(Automate a,char** liste_mots,int nombre_mots,char* nom_fichier){
+	
+	char* texte = GetTexte(nom_fichier);
+	int taille_texte = strlen(texte);
+	a = pre_ac(a,liste_mots,nombre_mots);
+	etat e = a->EtatInitial ;
+	int occurences = 0;
+	for(int j=0;j<taille_texte;j++){
+		printf("coucou %d\n",j);
+		while(EstDefinieTransition(a->tabListeTrans[e], texte[j]) == 0){
+			printf("Etat %d\n",e);
+			e = a->tabSuppleants[e] ; //On récupère le suppléant de l'état e (une seule transition pour chaque état dans tabListeTrans)
+		}
 
-// }
+		if(sortie(a->EstTerminal,e) == 1) {
+			occurences++;
+		}
+		printf("uocuoc %d\n",j);
+	}
+	printf("%d occurences détéctées dans le texte\n",occurences) ;
+}
 
 int EstDansAlphabet(char* alphabet,int *taille_alphabet,char lettre) {
 	if(alphabet == NULL)
@@ -305,11 +340,11 @@ void PrintAutomate(Automate a){
 	printf("Etats terminaux : ") ;
 	for(int i =0; i<a->nbEtats;i++){
 		if(sortie(a->EstTerminal,i)){
-			printf("%d",i) ;
+			printf("%d ",i) ;
 		}
 	}
 
-	printf("Transitions : ") ;
+	printf("\nTransitions : \n") ;
 	for(int i =0; i<a->nbEtats;i++){
 		if(estTransitionVide(a->tabListeTrans[i])){
 			continue ;
@@ -321,17 +356,16 @@ void PrintAutomate(Automate a){
 		}
 	}
 
-	printf("Suppléants : ") ;
+	printf("Suppléants : \n") ;
 	for(int i =0; i<a->nbEtats;i++){
-		if(estTransitionVide(a->tabSuppleants[i])){
-			continue ;
-		}
-		Transition t = a->tabSuppleants[i] ;
-		while(!estTransitionVide(t)){
-			printf("%d %c %d\n",i,getLettre(t),getDestination(t)) ;
-			t=TgetSuivant(t);
-		}
+		printf("%d : %d\n",i,a->tabSuppleants[i]) ;
 	}
 
 }
 
+void printSuppleants(Automate a){
+	printf("Suppléants : \n") ;
+	for(int i =0; i<a->nbEtats;i++){
+		printf("%d : %d\n",i,a->tabSuppleants[i]) ;
+	}
+}

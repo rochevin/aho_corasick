@@ -7,7 +7,7 @@ File FileVide(){
 	File f = (File)malloc(sizeof(struct _file)) ; 
 	if (f == 0) exit(1) ;
 	f->longueur = 0 ;
-	f->tete = f->queue = listeVide() ;
+	f->tete = listeVide() ;
 	return f ;
 }
 
@@ -48,11 +48,16 @@ File Enfiler(File f, int x) {
 	LsetSuivant(p, NULL) ;
 	setElement(p, x) ;
 	if(f->longueur == 0){
-		f->tete = f->queue = p;
+		f->tete = p;
 	}else {
-		LsetSuivant(f->queue, p) ;
+		Liste l = f->tete ;
+		while (LgetSuivant(l) != NULL)
+        {
+            l = LgetSuivant(l);
+        }
+		LsetSuivant(l, p) ;
 	}
-	f->longueur = f->longueur + 1 ;
+	(f->longueur)++ ;
 	return f ; 
 }
 
@@ -60,7 +65,8 @@ File Defiler(File f){
 	if(f->longueur == 0) return NULL ;
 	Liste l = f->tete ;
 	if(f->longueur == 1){
-		f->tete = f->queue = listeVide();
+		f->tete = listeVide();
+		f->longueur = 0 ;
 	}else {
 		f->tete = LgetSuivant(l) ;
 		free(l) ;
@@ -74,4 +80,14 @@ void FreeFile(File f) {
 	}
 }
 
+
+void AfficherFile(File f){
+	Liste l = f->tete;
+	printf("On affiche la file :");
+	while(!estListeVide(l)){
+		printf("%d ",getElement(l)) ;
+		l=LgetSuivant(l);
+	}
+	printf("\n");
+}
 
