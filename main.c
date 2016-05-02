@@ -38,8 +38,7 @@ int main(int argc, char** argv) {
 
 	//Ensuite on initialise l'automate
 	Automate a = init_automate(alphabet,taille_alphabet,etats_max) ;
-	//PrintAutomate(a) ;
-	//a = pre_ac(a,liste_mots,nombre_mots);
+	//Et on appelle la fonction Aho Corasick
 	Aho_Corasick(a,liste_mots,nombre_mots,argv[1]) ;
 
 	return EXIT_SUCCESS ;

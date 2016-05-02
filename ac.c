@@ -277,21 +277,24 @@ Automate pre_ac(Automate a,char** liste_mots,int nombre_mots){
 void Aho_Corasick(Automate a,char** liste_mots,int nombre_mots,char* nom_fichier){
 	
 	char* texte = GetTexte(nom_fichier);
+	char lettre;
 	int taille_texte = strlen(texte);
 	a = pre_ac(a,liste_mots,nombre_mots);
 	etat e = a->EtatInitial ;
 	int occurences = 0;
 	for(int j=0;j<taille_texte;j++){
-		printf("coucou %d\n",j);
-		while(EstDefinieTransition(a->tabListeTrans[e], texte[j]) == 0){
-			printf("Etat %d\n",e);
+		lettre = texte[j] ;
+		if(EstDansAlphabet(a->alphabet,&(a->tailleAlpha),lettre) == 0)
+			continue;
+		while(e != a->EtatInitial && EstDefinieTransition(a->tabListeTrans[e], lettre) == 0){
+			
 			e = a->tabSuppleants[e] ; //On récupère le suppléant de l'état e (une seule transition pour chaque état dans tabListeTrans)
 		}
-
+		e = getDestination(Cible(a->tabListeTrans[e], lettre)) ;
 		if(sortie(a->EstTerminal,e) == 1) {
 			occurences++;
+			printf("occurence détéctée dans le texte en position %d\n",j+1) ;
 		}
-		printf("uocuoc %d\n",j);
 	}
 	printf("%d occurences détéctées dans le texte\n",occurences) ;
 }
@@ -324,7 +327,8 @@ char* AjouterLettre(char* alphabet,int *taille_alphabet,char lettre){
 
 //fonction qui parcours un mot et ajoute la lettre dans l'alphabet si elle n'y est pas
 char* AjouterMot(char* alphabet,int *taille_alphabet,char* mot) {
-	for(int i = 0; i<strlen(mot);i++){
+	int taille_du_mot = strlen(mot) ;
+	for(int i = 0; i<taille_du_mot;i++){
 		if(EstDansAlphabet(alphabet,taille_alphabet,mot[i]) != 1){
 			alphabet = AjouterLettre(alphabet,taille_alphabet,mot[i]) ;
 		}
