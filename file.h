@@ -18,15 +18,15 @@ typedef struct _file * File;
 
 File FileVide();
 Liste listeVide();
-Liste LgetSuivant(Liste l);
-void LsetSuivant(Liste l,Liste p);
-int getElement(Liste l);
-void setElement(Liste l, int x);
-int estListeVide(Liste l);
-int estFileVide(File f);
-File Enfiler(File f, int x);
-File Defiler(File f);
-void FreeFile(File f);
-void AfficherFile(File f);
+Liste LgetSuivant(Liste);
+void LsetSuivant(Liste,Liste);
+int getElement(Liste);
+void setElement(Liste,int);
+int estListeVide(Liste);
+int estFileVide(File);
+File Enfiler(File,int);
+File Defiler(File);
+void FreeFile(File);
+void AfficherFile(File);
 
 #endif

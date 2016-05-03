@@ -1,17 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "ac.h"
-#include "file.h"
+
 
 
 int main(int argc, char** argv) {
-
-	int nombre_mots ;
-	char* alphabet = NULL;
-	int taille_alphabet = 0;
-	int etats_max = 1;
-	//int nombre_etats = 1; //Pour l'instant on sait qu'on a au moins l'état initial
 
 	if(argc<3) {
 		printf("Recherche de motif dans le fichier %s\n",argv[1]) ;
@@ -19,6 +14,15 @@ int main(int argc, char** argv) {
 		exit(1) ;
 	}	
 	
+	int nombre_mots ;
+	char* alphabet = NULL;
+	int taille_alphabet = 0;
+	int etats_max = 1;
+
+	//Partie qui va servir à calculer le temps d'execution des fonctions
+	float temps ;
+	clock_t t1,t2 ;
+
 	//On récupère le nombre de mots que l'utilisateur a saisi
 	nombre_mots = argc-2 ;
 	//On alloue un tableau de chaines de caractères qui contiendra tous les mots
@@ -35,12 +39,15 @@ int main(int argc, char** argv) {
 	for(int i=0;i<nombre_mots;i++) {
 		alphabet = AjouterMot(alphabet,&taille_alphabet,liste_mots[i]);
 	}
-
-	//Ensuite on initialise l'automate
+	//On initialise l'automate
 	Automate a = init_automate(alphabet,taille_alphabet,etats_max) ;
+	t1 = clock();
 	//Et on appelle la fonction Aho Corasick
 	Aho_Corasick(a,liste_mots,nombre_mots,argv[1]) ;
-
+	t2 = clock();
+	//Calcule du temps d'execution
+	temps = (float)(t2-t1)/CLOCKS_PER_SEC;
+	fprintf(stderr, "MESSAGE : Temps d'éxecution = %f secondes\n", temps);
 	return EXIT_SUCCESS ;
 }
 
