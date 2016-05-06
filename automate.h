@@ -19,10 +19,15 @@ struct _automate {
 	int* EstTerminal;
 	Transition* tabListeTrans;
 	int* tabSuppleants;
-	int* TerminalPourMot;
 };
 
 typedef struct _automate * Automate;
+
+//Alphabet
+int EstDansAlphabet(char*,int*,char);
+char* AjouterLettre(char*,int*,char);
+char* AjouterMot(char*,int*,char*);
+
 
 //Fonctions Automate / Transition
 Automate allouer_automate(int);
@@ -42,5 +47,11 @@ Transition TgetSuivant(Transition) ;
 int EstDefinieTransition(Transition,char) ;
 Transition Cible(Transition,char) ;
 void ajout_suppleant(int*,etat,etat) ;
+
+//Affichage de l'automate
+void PrintAutomate(Automate) ;
+void printTerminal(Automate);
+void printTransitions(Automate);
+void printSuppleants(Automate);
 
 #endif

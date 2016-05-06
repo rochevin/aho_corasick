@@ -1,0 +1,298 @@
+---
+title: "Projet C : Aho Corasick"
+author: "Vincent ROCHER"
+date: "9 mai 2016"
+output: 
+  html_document:
+    fig_caption: yes
+    fig_height: 8
+    fig_width: 10
+    highlight: pygments
+    keep_md: yes
+    number_sections: yes
+    theme: flatly
+    toc: yes
+    toc_float: true
+    toc_depth: 2
+    dev: svg
+bibliography: aho.bib
+---
+
+<style type="text/css">
+
+.author,.date{
+  text-align: center;
+  font-size: 26px;
+}
+
+h1.title {
+  font-size: 54px;
+  text-align: center;
+}
+
+body{ /* Normal  */
+   font-size: 16px;
+}
+td {  /* Table  */
+   font-size: 12px;
+}
+h1 { /* Header 1 */
+ font-size: 48px;
+}
+h2 { /* Header 2 */
+ font-size: 24px;
+}
+h3 { /* Header 3 */
+ font-size: 18px;
+}
+code.r{ /* Code block */
+  font-size: 12px;
+}
+pre { /* Code block */
+  font-size: 12px
+}
+</style>
+
+
+#But du programme
+
+Le but du programme est d'implémenter l'algorithme de Aho Corasick [@aho_efficient_1975]. Cet algorithme utilise une structure de type __automate__ pour représenter une suite de motifs à rechercher dans un texte. 
+
+Grâce à cette structure particulière, le programme devra pouvoir compter toutes les occurences d'un ensemble fini de mots en un seul parcours du texte.
+
+Le programme devra donc être composé des structures suivantes :
+
+* Une structure de type `Automate`. 
+* Une structure de type `File`.
+* Des listes chainées, à la fois pour représenter les transitions entres états de l'`Automate` que pour représenter la `File`.
+
+#Fichiers
+
+* AhoCorasick :
+    * __`README.html`__: Fichier README.
+    * __`Makefile`__: Fichier de compilation.
+    * __`main.c`__: Fichier principal du programme.
+    * __`ac.c`__: Fichier contenant l'implémentation d'aho corasick (fonctions `AhoCorasick`, `pre_ac`, `ENTRER` et `COMPLETER`).
+    * __`ac.h`__: Fichier d'en-tête de `ac.c`.
+    * __`automate.c`__: Fichier contenant l'implémentation de la structure automate, transition, ainsi que les fonctions nécessaires à leurs construction. 
+    * __`automate.h`__: Fichier d'en tête de `automate.c`.
+    * __`file.c`__ : Fichier contenant l'implémentation de la structure File, ainsi que les fonctions nécessaire à sa construction.
+    * __`file.h`__ : Fichier d'en-tête de `file.c`.
+    * __`fichier.c`__ : Fichier contenant le code nécessaire à la lecture d'un fichier.
+    * __`fichier.h`__ : Fichier d'en-tête de `fichier.c`.
+* Text_Generator :
+    * __`text_generator.c`__ : Programme pour insérer des motifs dans un texte généré aléatoirement.
+
+#Fonctions
+
+##__`fichier.c`__
+
+```C
+char* GetTexte(char*);
+```
+
+* __`GetTexte`__ ouvre un fichier en mode lecture, calcule sa taille, puis enregistre le résultat dans une chaine de caractère :
+    * __Input__ : Une chaine de catactère représentant le nom du fichier.
+    * __Output__ : Une chaine de caractère avec le contenu du fichier.
+
+
+##__`file.h`__
+
+__`file.h`__ contient, en plus des en-têtes des fonctions, les définitions de deux structures __`_liste`__ et __`_file`__.
+
+```C
+struct _liste {
+	int element;
+	struct _liste * suivant;
+};
+
+typedef struct _liste * Liste;
+
+struct _file {
+	int longueur ;
+	struct _liste * tete;
+};
+
+typedef struct _file * File;
+```
+
+* __`_liste`__ : Structure secondaire de la `File`, représentant une liste chainée :
+    * __element__ : Un entier qui représente la valeur de l'élement.
+    * __suivante__ : Un pointeur vers la structure `_liste` suivante.
+* __`_file`__ : Structure principale de la `File` :
+    * __longueur__ : Un entier qui représente la taille de la file.
+    * __tete__ : un pointeur vers la première structure `_liste` de la `File`.
+* __`File`__ : Un pointeur vers une structure de type `_file`.
+* __`Liste`__ : Un pointeur vers une structure de type `_liste`.
+
+##__`file.c`__
+
+__`file.c`__ contient les fonctions nécéssaires à la construction et la définition des structures présentés dans __`file.h`__.
+
+```C
+File FileVide();
+Liste listeVide();
+Liste LgetSuivant(Liste);
+void LsetSuivant(Liste,Liste);
+int getElement(Liste);
+void setElement(Liste,int);
+int estListeVide(Liste);
+int estFileVide(File);
+File Enfiler(File,int);
+File Defiler(File);
+void FreeFile(File);
+void AfficherFile(File);
+```
+
+* __`FileVide`__ Fonction de création de la file, avec allocation mémoire d'une structure `File`, et fixe sa longueur à 0  :
+    * __Input__ : type `void`.
+    * __Output__ : Une structure de type `File`.
+* __`listeVide`__ Fonction qui renvoit une structure `Liste` nulle :
+    * __Input__ : type `void`.
+    * __Output__ : `NULL`.
+* __`LgetSuivant`__ Fonction qui renvoit l'élement suivant d'une structure `Liste` :
+    * __Input__ : Une structure `Liste`.
+    * __Output__ : La structure `Liste` suivante.
+* __`LsetSuivant`__ Fonction qui définit l'élement suivant d'une structure `Liste` :
+    * __Input__ : Deux structures `Liste`.
+    * __Output__ : type `void`.
+* __`getElement`__ Fonction qui renvoit l'élement(contenu) d'une structure `Liste` :
+    * __Input__ : Une structure `Liste`.
+    * __Output__ : Un entier correspondant à l'élement de cette structure.
+* __`setElement`__ Fonction qui définit l'élement d'une structure `Liste` :
+    * __Input__ : une structure `Liste` et un entier.
+    * __Output__ : type `void`.
+* __`estListeVide`__ Fonction qui détermine si une structure `Liste` est vide ou non :
+    * __Input__ : une structure `Liste`.
+    * __Output__ : type `boolean`, `TRUE` si `Liste` est vide.
+* __`estFileVide`__ Fonction qui détermine si une structure `File` est vide ou non :
+    * __Input__ : une structure `File`.
+    * __Output__ : type `boolean`, `TRUE` si la longueur de la `File` est égale à $0$.
+* __`Enfiler`__ Fonction qui permet d'ajouter à la file un élément en queue :
+    * __Input__ : une structure `File` et un entier.
+    * __Output__ : La `File` avec le nouvel élément.
+* __`Defiler`__ Fonction qui permet d'enlever à la file son élément en tête :
+    * __Input__ : une structure `File`.
+    * __Output__ : La `File`, moins son élément en tête(`NULL` si il n'y avait qu'un seul élément).
+* __`FreeFile`__ Fonction qui va vider la `File` tant qu'elle n'est pas nulle :
+    * __Input__ : une structure `File`.
+    * __Output__ : type `void`.
+* __`AfficherFile`__ Fonction qui affiche chaque élément d'une structure de type `File` :
+    * __Input__ : une structure `File`.
+    * __Output__ : type `void`.
+
+##__`automate.h`__
+
+__`automate.h`__ contient, en plus des en-têtes des fonctions, les définitions de deux structures __`_transition`__ et __`_automate`__.
+
+```C
+typedef int etat;
+
+struct _transition {
+	char lettre;
+	etat destination;
+	struct _transition* suivant;
+};
+
+typedef struct _transition * Transition;
+
+struct _automate {
+	int tailleAlpha;
+	char* alphabet;
+	int nbEtats;
+	etat EtatInitial;
+	int* EstTerminal;
+	Transition* tabListeTrans;
+	int* tabSuppleants;
+};
+
+typedef struct _automate * Automate;
+```
+
+* __`_transition`__ : Structure secondaire d'`Automate`, représentant par une liste chainée la transition d'un état de l'automate à un autre:
+    * __lettre__ : Un caractère qui définit la transition.
+    * __destination__ : l'`etat` destination de la transition
+    * __suivant__ : Un pointeur vers la structure `_transition` suivante.
+* __`_automate`__ : Structure principale de l'`Automate` :
+    * __`tailleAlpha`__ : un entier représentant la taille de l'alphabet de l'automate.
+    * __`alphabet`__ : une chaine de caractère représentant l'alphabet de l'automate.
+    * __`nbEtats`__ : un entier représentant le nombre d'état totaux de l'automate.
+    * __`EtatInitial`__ : un entier (ou `etat`) représentant l'état initial de l'automate.
+    * __`EstTerminal`__ : Un tableau d'entier permettant de déterminer si un état est terminal ($1$) ou non ($0$).
+    * __`tabListeTrans`__ : Un tableau de pointeur vers des structures de type transition, qui va contenir toutes les transitions de chaque état de l'automate.
+    * __`tabSuppleants`__ : Un tableau d'entier qui pour chaque etat donne son état suppléant dans l'automate.
+* __`Automate`__ : Un pointeur vers une structure de type `_automate`.
+* __`Transition`__ : Un pointeur vers une structure de type `_transition`.
+* __`etat`__ : Un nouveau type de données, correspondant à un entier.
+
+##__`automate.c`__
+
+__`automate.c`__ contient les fonctions nécéssaires à la construction et la définition des structures présentés dans __`automate.h`__.
+
+```C
+//Alphabet
+int EstDansAlphabet(char*,int*,char);
+char* AjouterLettre(char*,int*,char);
+char* AjouterMot(char*,int*,char*);
+
+
+//Fonctions Automate / Transition
+Automate allouer_automate(int);
+Automate init_automate(char*,int,int) ;
+int* creer_estTerminal(int) ;
+void mettreTerminal(int*,etat) ;
+int sortie(int*,etat) ;
+int estTransitionVide(Transition);
+Transition* creer_transition(int) ;
+void ajout_transition(Transition*,etat,etat,char) ;
+void setDestination(Transition,etat) ;
+int getDestination(Transition) ;
+void setLettre(Transition,char) ;
+char getLettre(Transition) ;
+void TsetSuivant(Transition,Transition) ;
+Transition TgetSuivant(Transition) ;
+int EstDefinieTransition(Transition,char) ;
+Transition Cible(Transition,char) ;
+void ajout_suppleant(int*,etat,etat) ;
+
+//Affichage de l'automate
+void PrintAutomate(Automate) ;
+void printTerminal(Automate);
+void printTransitions(Automate);
+void printSuppleants(Automate);
+```
+
+###Fonctions __`Alphabet`__
+
+* __`EstDansAlphabet`__ Fonction qui vérifie si une lettre est déjà présente dans l'alphabet :
+    * __Input__ : l'alphabet, sa taille, et la lettre qui doit être vérifiée.
+    * __Output__ : __$0$__ si la lettre n'est pas dans l'alphabet, __$1$__ si elle est présente.
+* __`AjouterLettre`__ Fonction qui ajoute la lettre donnée à l'alphabet :
+    * __Input__ : l'alphabet, sa taille, et la lettre à ajouter.
+    * __Output__ : Renvoit l'alphabet.
+* __`AjouterMot`__ Fonction qui pour chaque lettre d'un mot, si elle n'est pas déjà présente, appelle `AjouterLettre` :
+    * __Input__ : l'alphabet, sa taille, et le mot à ajouter.
+    * __Output__ : Renvoit l'alphabet.
+
+###Fonctions `Automate` / `Transition`
+
+* __`allouer_automate`__ Fonction qui, pour un nombre d'états données, va faire l'allocation mémoire nécessaire à la construction d'une structure `Automate` et de ses éléments.
+    * __Input__ : Un entier représentant le nombre d'états maximum possible dans l'automate.
+    * __Output__ : Un pointeur de type `Automate`.
+* __`init_automate`__ Fonction qui, pour un nombre d'états données, et un alphabet, va créer l'automate (appel à `init_automate`)
+    * __Input__ : Une chaine de caractère représentant l'alphabet, sa taille et le nombre d'états maximum possibles pour l'automate
+    * __Output__ : Un pointeur de type `Automate`.
+    
+    
+
+#Déroulement du programme : __`main.c`__
+
+#Test du programme
+
+#Problèmes rencontrés
+
+#Améliorations possibles
+
+#References
+
+

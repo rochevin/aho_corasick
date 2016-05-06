@@ -50,4 +50,3 @@ int main(int argc, char** argv) {
 	fprintf(stderr, "MESSAGE : Temps d'éxecution = %f secondes\n", temps);
 	return EXIT_SUCCESS ;
 }
-

@@ -3,6 +3,47 @@
 #include <string.h>
 #include "automate.h"
 
+
+//CONSTRUCTION DE L'ALPHABET
+
+//Vérifie si une lettre est dans l'alphabet
+int EstDansAlphabet(char* alphabet,int *taille_alphabet,char lettre) {
+	if(alphabet == NULL)
+		return 0;
+	int taille = *taille_alphabet ;
+	for(int i=0;i<taille;i++){
+		if(alphabet[i]==lettre)
+			return 1;
+	}
+	return 0;
+}
+
+//Ajoute une lettre dans l'alphabet
+char* AjouterLettre(char* alphabet,int *taille_alphabet,char lettre){
+	int taille = *taille_alphabet ;
+	if(alphabet == NULL){
+		alphabet = (char*) malloc(sizeof(char));
+		alphabet[0] = lettre;
+	} else {
+		alphabet = (char*) realloc(alphabet, sizeof(char) * (taille+1));
+		alphabet[taille] = lettre;
+	}
+	*taille_alphabet = taille + 1;
+	return alphabet ;
+}
+
+//fonction qui parcours un mot et ajoute la lettre dans l'alphabet si elle n'y est pas
+char* AjouterMot(char* alphabet,int *taille_alphabet,char* mot) {
+	int taille_du_mot = strlen(mot) ;
+	for(int i = 0; i<taille_du_mot;i++){
+		if(EstDansAlphabet(alphabet,taille_alphabet,mot[i]) != 1){
+			alphabet = AjouterLettre(alphabet,taille_alphabet,mot[i]) ;
+		}
+	}
+	return alphabet ;
+}
+
+
 //Fonctions Automate / Transition
 
 Automate allouer_automate(int etats_max) {
@@ -136,4 +177,51 @@ Transition Cible(Transition t,char lettre) {
 //Fonction qui définit dest comme étant suppléant de source
 void ajout_suppleant(int* tabT, etat source,etat dest){
 	tabT[source] = dest ;
+}
+
+
+//Affichage de l'automate
+
+void PrintAutomate(Automate a){
+	printf("Alphabet : %s\n",a->alphabet) ;
+	printf("Taille alphabet : %d\n",a->tailleAlpha) ;
+	printf("Etat initial : %d\n",a->EtatInitial) ;
+	printf("Nb etats : %d\n",a->nbEtats) ;
+	printf("Etats terminaux : ") ;
+	printTerminal(a);
+	printf("\nTransitions : \n") ;
+	printTransitions(a);
+	printf("Suppléants : \n") ;
+	printSuppleants(a);
+
+}
+
+//affiche les etats terminaux d'un automate donné
+void printTerminal(Automate a){
+	for(int i =0; i<a->nbEtats;i++){
+		if(sortie(a->EstTerminal,i)){
+			printf("%d ",i) ;
+		}
+	}
+}
+
+//Affiche toutes les transitions d'un automate donné
+void printTransitions(Automate a){
+	for(int i =0; i<a->nbEtats;i++){
+		if(estTransitionVide(a->tabListeTrans[i])){
+			continue ;
+		}
+		Transition t = a->tabListeTrans[i] ;
+		while(!estTransitionVide(t)){
+			printf("%d %c %d\n",i,getLettre(t),getDestination(t)) ;
+			t=TgetSuivant(t);
+		}
+	}
+}
+
+//Affiche le suppléant de chaque etat d'un automate donné
+void printSuppleants(Automate a){
+	for(int i =0; i<a->nbEtats;i++){
+		printf("%d : %d\n",i,a->tabSuppleants[i]) ;
+	}
 }
